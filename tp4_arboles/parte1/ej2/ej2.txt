@@ -1,0 +1,65 @@
+2)
+a)
+type
+    { 1. Archivo de Datos Maestro (No ordenado) }
+    alumno = record
+        nombre_apellido: string[50];
+        dni: longint;
+        legajo: integer;
+        anio_ingreso: integer;
+    end;
+    TArchivoDatos = file of alumno; { El "maestro" }
+
+    { 2. Archivo Índice (Árbol B) }
+    TNodo = record
+        cant_claves: integer;
+        claves: array[1..M-1] of longint;  { Solo guardamos el DNI }
+        enlaces: array[1..M-1] of integer; { NRR del alumno en TArchivoDatos }
+        hijos: array[1..M] of integer;    { NRR de otros TNodo en el índice }
+    end;
+    arbolB = file of TNodo; { El "índice" }
+
+var
+    archivoDatos: TArchivoDatos;
+    archivoIndice: arbolB;
+BEGIN
+END.
+
+B)512 = 4 + (M - 1) * 4 + (M - 1) * 4 + M *4
+512 = 4 + 4M - 4 + 4M - 4 + 4M
+512 = 12M - 4
+512 + 4 = 12M = 516 = 12M
+M = 516 / 12 = 43
+M = 43
+Claves = M - 1 = 42
+
+c) c. ¿Qué implica que el orden del árbol B sea mayor que en el caso del ejercicio 1?
+Implicación directa: El árbol se vuelve mucho más ancho y extremadamente petiso (baja altura).  Análisis comparativo: En el Ejercicio 1, cada nodo solo 
+aguantaba 7 alumnos M=8. 
+Ahora, cada nodo aguanta 42 claves M=43 en los mismos 512 bytes de disco. Al tener más ramificaciones, el árbol necesita muchísimos menos niveles 
+para albergar a toda la facultad. Esto significa que vas a encontrar a cualquier alumno haciendo muchas menos lecturas de disco, acelerando 
+exponencialmente las búsquedas.
+
+d)Proceso para buscar el alumno con DNI 12345678
+El sistema toma el NRR de la raíz del archivo archivoIndice y lee ese nodo en memoria RAM.  Busca el DNI 12345678 dentro del array claves del nodo:  
+Si lo encuentra (ponele que estaba en claves[i]): Va al array paralelo de enlaces en esa misma posición y lee el número guardado en enlaces[i] 
+(que es el NRR del archivo maestro). Luego, hace un seek directo a esa posición en el archivo archivoDatos y lee el registro completo del alumno (nombre, año, etc.). 
+¡Fin del proceso!  Si no lo encuentra en ese nodo: El algoritmo define en qué rango cae el DNI y salta al nodo hijo correspondiente usando el array hijos[pos]. 
+Repite este paso recursivamente bajando por el índice.  
+
+e) e. ¿Qué ocurre si desea buscar por número de legajo?¿Tiene sentido usar el índice por DNI?: No, no tiene ningún sentido. El árbol índice está estrictamente ordenado por la lógica numérica del DNI.
+ Si buscas por legajo, el árbol no te puede guiar sobre si ir a la izquierda o a la derecha de un nodo.  
+ ¿Qué ocurriría?: Tendrías que ignorar el índice y hacer una búsqueda secuencial leyendo todo el archivo maestro de datos, registro por registro, lo cual es lentísimo.
+ ¿Cómo se soluciona?: Se crea un segundo archivo índice independiente (otro Árbol B). Este nuevo árbol va a tener en su array de claves los números de legajo, pero sus
+ enlaces van a apuntar exactamente al mismo archivo maestro de datos. Así, tenés dos "mapas" de acceso rápido para el mismo archivo de alumnos.  
+ 
+ f) Búsqueda por rango de DNI (entre 40.000.000 y 45.000.000)El gran problema: El Árbol B estándar no tiene los nodos hoja conectados entre sí. 
+ Cómo sufriría el sistema: El algoritmo usaría el índice para buscar el piso del rango (40000000). 
+ Una vez que encuentra a ese alumno en una hoja, si quiere ver el siguiente DNI, no puede caminar hacia el costado. 
+ Tiene que volver a subir a los nodos padres del índice para buscar el siguiente elemento y volver a bajar.  Para completar el rango, el sistema tendría que 
+ hacer el proceso de búsqueda individual en el árbol B para casi cada número del rango, generando un viaje constante de subidas y bajadas por los nodos que 
+ destruye el rendimiento del disco.  
+ 
+ 
+ 
+ 
